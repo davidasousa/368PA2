@@ -4,113 +4,6 @@
 #include <stdbool.h>
 #include "pa2.h"
 
-Tree_Node* read_elem(char* file_contents, int* idx) // CHECK IF Input garunteed to be valid
-{
-    Tree_Node* new_node = NULL;
-
-    // Starts At The New Value -> Check If Internal Or External
-    if(file_contents[*idx] == 'H' || file_contents[*idx] == 'V') // Incrementation Works Properly
-    {
-        new_node = malloc(sizeof(*new_node));
-        *new_node = (Tree_Node) {.type = SPLIT, .info = &file_contents[*idx], .left = NULL, .right = NULL};
-        *idx += 2;
-        return new_node; 
-    }
-    else
-    {
-        Box* info = malloc(sizeof(*info));
-
-        info -> box_num = 0;
-        info -> x_cord = 0;
-        info -> y_cord = 0;
-        // Parsing To The (
-        while(file_contents[*idx] != '(')
-        {
-            info -> box_num *= 10;
-            info -> box_num += (file_contents[*idx] - '0');
-            *idx += 1;
-        }
-        *idx += 1;
-        while(file_contents[*idx] != ',')
-        {
-            info -> x_cord *= 10;
-            info -> x_cord += (file_contents[*idx] - '0');
-            *idx += 1;
-        }
-        *idx += 1;
-        while(file_contents[*idx] != ')')
-        {
-            info -> y_cord *= 10;
-            info -> y_cord += (file_contents[*idx] - '0');
-            *idx += 1;
-        }
-        *idx += 2;
-         
-        new_node = malloc(sizeof(*new_node));
-        *new_node = (Tree_Node) {.type = BOX, .info = info, .left = NULL, .right = NULL}; // Removed Ampersand on info 
-        return new_node; 
-
-    }
-}
-
-void insert_to_tree(Tree_Node* head, Tree_Node* new_node)
-{
-    if(head -> left == NULL)
-        head -> left = new_node;
-    else if(head -> right == NULL)
-        head -> right = new_node;
-    else if(head -> left -> type == SPLIT)
-        insert_to_tree(head -> left, new_node);
-    else if(head -> right -> type == SPLIT)
-        insert_to_tree(head -> right, new_node);
-    return;
-}
-
-Tree_Node* assemble_tree(char* input_file, char** contents)
-{
-    FILE* fp = fopen(input_file, "r");
-    if(fp == NULL) // Testing If Opening The File Works
-    {
-        return NULL;
-    }
-
-    fseek(fp, 0, SEEK_END); // Finding Size Of The Input File
-    int bytes = ftell(fp);
-    fseek(fp, 0, SEEK_SET);    
-
-    char* file_contents = malloc(sizeof(*file_contents) * bytes);
-
-    int cont_idx = 0;
-    for(char ch = fgetc(fp); !feof(fp); ch = fgetc(fp)) // Storing File Contents In An Array To Deal With 
-    {
-        file_contents[cont_idx] = ch;
-        cont_idx++; 
-    }
-
-    // Creating The Head Node // Parse Through Like JSON
-
-    Tree_Node* head_node = NULL;
-    int parse_idx = 0;
-    while(parse_idx < bytes)
-    { 
-        if(head_node == NULL) // Creation Of The Head Node
-        {
-            head_node = malloc(sizeof(*head_node)); // CHECKING IF IT IS A SPLIT VS A TREE OF JUST ONE RECTANGLE
-            if(file_contents[parse_idx] == 'H' || file_contents[parse_idx] == 'V')
-            {
-                *head_node = (Tree_Node) {.type = SPLIT, .info = &file_contents[parse_idx], .left = NULL, .right = NULL};
-                parse_idx += 2; 
-            } 
-        }
-        Tree_Node* new_node = read_elem(file_contents, &parse_idx);
-        insert_to_tree(head_node, new_node);     
-    }
-    *contents = file_contents; // passing it back to main to be freed
-    fclose(fp);
-
-    return head_node;
-}
-
 static void free_tree(Tree_Node* head) // Free the actual nodes and the info for the boxes
 { 
     if(head -> left != NULL)
@@ -120,34 +13,233 @@ static void free_tree(Tree_Node* head) // Free the actual nodes and the info for
 
     if(head -> type == SPLIT)
     {
-        printf("%c \n", *(char*)(head -> info));
-        free(head);
+        free(head -> info);
+        free(head);        
         return;
     }
     if(head -> type == BOX)
     {
-        printf("%d \n", ((Box*)(head -> info)) -> box_num);
         free(head -> info);
         free(head);
         return;
     }
 }
 
+Tree_Node* read_tree_recurse(FILE* fp)
+{
+    int box_num, width, height;
 
+    int num_read = fscanf(fp, "%d(%d,%d)\n", &box_num, &width, &height);
+    
+    if(num_read == 3) 
+    {
+        Tree_Node* box_node = malloc(sizeof(*box_node));
+        Box* box_info = malloc(sizeof(*box_info));
 
-// Notes - FIX REMAINING VALGRIND ERRORS
-// WORK ON OUT PUT ONE POST ORDER EASY
+        *box_info = (Box){.box_num = box_num, .width = width, .height = height};
+        *box_node = (Tree_Node){.type = BOX, .info = box_info, .left = NULL, .right = NULL};
+    
+        return box_node;
+    }
+    Split* split = malloc(sizeof(*split));
+    
+    int num_read2 = fscanf(fp, "%c\n", &(split -> split_type));
+ 
+    if(num_read2 == 1)
+    {
+        Tree_Node* split_node = malloc(sizeof(*split_node));
+        *split_node = (Tree_Node){.type = SPLIT, .info = split, .left = NULL, .right = NULL};
+
+        split_node -> left = read_tree_recurse(fp);
+        split_node -> right = read_tree_recurse(fp);
+
+        return split_node; 
+    }
+    return NULL;
+}
+
+void write_output_1(Tree_Node* head, FILE* fp)
+{
+    if(head == NULL)
+        return;
+
+    write_output_1(head -> left, fp);
+    write_output_1(head -> right, fp);
+
+    if(head -> type == SPLIT)
+        fprintf(fp, "%c\n", ((Split*)(head -> info)) -> split_type);
+    if(head -> type == BOX)
+        fprintf(fp, "%d(%d,%d)\n", ((Box*)(head -> info)) -> box_num, ((Box*)(head -> info)) -> width, ((Box*)(head -> info)) -> height);
+
+    return;
+}
+
+static int find_split_width(Tree_Node* head)
+{
+    if(head == NULL)
+        return 0;
+
+    if(head -> type == BOX)
+        return ((Box*)(head -> info)) -> width;
+
+    int width_left = find_split_width(head -> left);
+    int width_right = find_split_width(head -> right);
+ 
+    if(((Split*)(head -> info)) -> split_type == 'V')
+    {
+        ((Split*)(head -> info)) -> width = width_left + width_right;
+        return width_left + width_right;
+    }
+    else
+    {
+        if(width_right > width_left)
+        { 
+            ((Split*)(head -> info)) -> width = width_right;
+            return width_right;
+        }
+        else
+        {
+            ((Split*)(head -> info)) -> width = width_left;
+            return width_left;
+        }
+    }
+}
+
+static int find_split_height(Tree_Node* head)
+{
+    if(head == NULL)
+        return 0;
+
+    if(head -> type == BOX)
+        return ((Box*)(head -> info)) -> height;
+
+    int height_left = find_split_height(head -> left);
+    int height_right = find_split_height(head -> right);
+ 
+    if(((Split*)(head -> info)) -> split_type == 'H')
+    {
+        ((Split*)(head -> info)) -> height = height_left + height_right;
+        return height_left + height_right;
+    }
+    else
+    {
+        if(height_right > height_left)
+        { 
+            ((Split*)(head -> info)) -> height = height_right;
+            return height_right;
+        }
+        else
+        {
+            ((Split*)(head -> info)) -> height = height_left;
+            return height_left;
+        }
+    }
+}
+
+void write_output_2(Tree_Node* head, FILE* fp)
+{
+    if(head == NULL)
+        return;
+
+    write_output_2(head -> left, fp);
+    write_output_2(head -> right, fp);
+
+    if(head -> type == SPLIT)
+        fprintf(fp, "%c(%d,%d)\n", ((Split*)(head -> info)) -> split_type, ((Split*)(head -> info)) -> width, ((Split*)(head -> info)) -> height);
+    if(head -> type == BOX)
+        fprintf(fp, "%d(%d,%d)\n", ((Box*)(head -> info)) -> box_num, ((Box*)(head -> info)) -> width, ((Box*)(head -> info)) -> height);
+
+    return;
+}
+
+// Finding X and Y coordinates works when you remove all x parts
+
+static void find_y(Tree_Node* root, int* y, int* x)
+{
+    if(root == NULL || root -> type == BOX)
+        return;
+    
+    if(((Split*)(root -> info)) -> split_type == 'H')
+    {
+        *y = *y + (((Split*)(root -> info)) -> height - ((Split*)(root -> left -> info)) -> height);
+        root -> left -> y_cord = *y;
+        root -> right -> y_cord = *y - (((Split*)(root -> right -> info)) -> height);
+
+        printf("%d \n", *y);
+
+    }
+    if(((Split*)(root -> info)) -> split_type == 'V')
+    {
+        root -> left -> y_cord = *y;
+        root -> right -> y_cord = *y;
+
+    } 
+    find_y(root -> left, y, x);
+    *y = 0;
+    find_y(root -> right, y, x);
+}
+
+void write_output_3(Tree_Node* head, FILE* fp)
+{
+    if(head == NULL || head -> type == BOX)
+        return;
+
+    write_output_3(head -> left, fp);
+ 
+    if(head -> left -> type == BOX)
+    {
+        printf("%d((%d,%d)(%d,%d))\n", ((Box*)(head -> left -> info)) -> box_num, ((Box*)(head -> left -> info)) -> width, ((Box*)(head -> left -> info)) -> height, head -> left -> x_cord, head -> left -> y_cord);
+    }
+    if(head -> right -> type == BOX)
+    {
+        printf("%d((%d,%d)(%d,%d))\n", ((Box*)(head -> right -> info)) -> box_num, ((Box*)(head -> right -> info)) -> width, ((Box*)(head -> right -> info)) -> height, head -> right -> x_cord, head -> right -> y_cord);
+    }
+
+    write_output_3(head -> right, fp);
+
+    return;
+}
 
 int main(int argc, char* argv[]) 
 {
-    // Opening The File
 
-    char* input = argv[1];
+    if(argc != 5)
+        return EXIT_FAILURE;
+                                        
+    FILE* fp0 = fopen(argv[1], "r");
+    if(fp0 == NULL)
+        return EXIT_FAILURE;
+    Tree_Node* root = read_tree_recurse(fp0);
+    fclose(fp0);
+    
+    find_split_width(root);
+    find_split_height(root);
 
-    char* contents = NULL;
-    Tree_Node* head_node = assemble_tree(input, &contents); 
+    int y = 0;
+    int x = 0;
+    find_y(root, &y, &x);
 
-    free_tree(head_node);
-    free(contents);
+    // Output 1
+    FILE* fp = fopen(argv[2], "w");
+    if(fp == NULL)
+        return EXIT_FAILURE;
+    write_output_1(root, fp);
+    fclose(fp);
+
+    // Output 2
+    FILE* fp2 = fopen(argv[3], "w");
+    if(fp2 == NULL)
+        return EXIT_FAILURE;
+    write_output_2(root, fp2);
+    fclose(fp2);
+
+    // Output 3
+    FILE* fp3 = fopen(argv[4], "w");
+    if(fp3 == NULL)
+        return EXIT_FAILURE;
+    write_output_3(root, fp3);
+    fclose(fp3);
+    
+    free_tree(root);
     return EXIT_SUCCESS;
 }

@@ -154,7 +154,7 @@ void write_output_2(Tree_Node* head, FILE* fp)
 
 // Finding X and Y coordinates works when you remove all x parts
 
-static void find_y(Tree_Node* root, int* y, int* x)
+static void find_y(Tree_Node* root, int* y)
 {
     if(root == NULL || root -> type == BOX)
         return;
@@ -165,18 +165,37 @@ static void find_y(Tree_Node* root, int* y, int* x)
         root -> left -> y_cord = *y;
         root -> right -> y_cord = *y - (((Split*)(root -> right -> info)) -> height);
 
-        printf("%d \n", *y);
-
     }
     if(((Split*)(root -> info)) -> split_type == 'V')
     {
         root -> left -> y_cord = *y;
         root -> right -> y_cord = *y;
-
     } 
-    find_y(root -> left, y, x);
+    find_y(root -> left, y);
     *y = 0;
-    find_y(root -> right, y, x);
+    find_y(root -> right, y);
+}
+
+static void find_x(Tree_Node* root, int* x)
+{
+    if(root == NULL || root -> type == BOX)
+        return;
+    
+    if(((Split*)(root -> info)) -> split_type == 'V')
+    {
+        root -> left -> x_cord = *x;
+        *x = ((Split*)(root -> info)) -> width;
+        root -> right -> x_cord = *x - ((Split*)(root -> right -> info)) -> width;
+        printf("%d V\n", *x);
+
+    }
+    if(((Split*)(root -> info)) -> split_type == 'H')
+    {
+        printf("%d H\n", *x);
+    } 
+    find_x(root -> left, x);
+    *x = 0;
+    find_x(root -> right, x);
 }
 
 void write_output_3(Tree_Node* head, FILE* fp)
@@ -217,7 +236,8 @@ int main(int argc, char* argv[])
 
     int y = 0;
     int x = 0;
-    find_y(root, &y, &x);
+    find_y(root, &y);
+    find_x(root, &x);
 
     // Output 1
     FILE* fp = fopen(argv[2], "w");

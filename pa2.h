@@ -11,16 +11,28 @@ typedef struct _Tree_Node { // Nodes Contain A Type Enum And Their Data In A Uni
     void* info;
     struct _Tree_Node *left;
     struct _Tree_Node *right;
-} Tree_Node;
-
-typedef struct _Box {
-    int box_num;
     int x_cord;
     int y_cord;
+} Tree_Node;
+// splits should store boxs
+
+typedef struct _Box { // Splits should have these values as well fix after creating output 1
+    int box_num;
+    int width;
+    int height;
 } Box;
 
-Tree_Node* assemble_tree(char* input_file, char** contents);
+typedef struct _Split { // Splits should have these values as well fix after creating output 1
+    char split_type;
+    int width;
+    int height;
+} Split;
 
-Tree_Node* read_elem(char* file_contents, int* idx);
+Tree_Node* read_tree_recurse(FILE* fp);
 
-void insert_to_tree(Tree_Node* head, Tree_Node* new_node);
+void write_output_1(Tree_Node* head, FILE* fp);
+
+void write_output_2(Tree_Node* head, FILE* fp);
+
+void write_output_3(Tree_Node* head, FILE* fp);
+

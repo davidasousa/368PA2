@@ -156,6 +156,7 @@ void write_output_2(Tree_Node* head, FILE* fp)
 
 static void find_y(Tree_Node* root, int* y)
 {
+    
     if(root == NULL || root -> type == BOX)
         return;
     
@@ -186,15 +187,16 @@ static void find_x(Tree_Node* root, int* x)
         root -> left -> x_cord = *x;
         *x = ((Split*)(root -> info)) -> width;
         root -> right -> x_cord = *x - ((Split*)(root -> right -> info)) -> width;
-        printf("%d V\n", *x);
+        *x = 0;
 
     }
     if(((Split*)(root -> info)) -> split_type == 'H')
     {
-        printf("%d H\n", *x);
+        root -> left -> x_cord = *x;
+        root -> right -> x_cord = *x;
     } 
+
     find_x(root -> left, x);
-    *x = 0;
     find_x(root -> right, x);
 }
 
@@ -207,11 +209,11 @@ void write_output_3(Tree_Node* head, FILE* fp)
  
     if(head -> left -> type == BOX)
     {
-        printf("%d((%d,%d)(%d,%d))\n", ((Box*)(head -> left -> info)) -> box_num, ((Box*)(head -> left -> info)) -> width, ((Box*)(head -> left -> info)) -> height, head -> left -> x_cord, head -> left -> y_cord);
+        fprintf(fp,"%d((%d,%d)(%d,%d))\n", ((Box*)(head -> left -> info)) -> box_num, ((Box*)(head -> left -> info)) -> width, ((Box*)(head -> left -> info)) -> height, head -> left -> x_cord, head -> left -> y_cord);
     }
     if(head -> right -> type == BOX)
     {
-        printf("%d((%d,%d)(%d,%d))\n", ((Box*)(head -> right -> info)) -> box_num, ((Box*)(head -> right -> info)) -> width, ((Box*)(head -> right -> info)) -> height, head -> right -> x_cord, head -> right -> y_cord);
+        fprintf(fp, "%d((%d,%d)(%d,%d))\n", ((Box*)(head -> right -> info)) -> box_num, ((Box*)(head -> right -> info)) -> width, ((Box*)(head -> right -> info)) -> height, head -> right -> x_cord, head -> right -> y_cord);
     }
 
     write_output_3(head -> right, fp);

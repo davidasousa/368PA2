@@ -199,7 +199,37 @@ static void find_x(Tree_Node* root, int* x)
     find_x(root -> left, x);
     find_x(root -> right, x);
 }
+/*
+static void find_cords(Tree_Node* root, int* x, int* y)
+{
+    if(root == NULL)
+        return;
 
+    find_cords(root -> left, x ,y);
+    find_cords(root -> right, x, y);
+
+    if(root -> type == SPLIT)
+    {
+//        printf("%c ", ((Split*)(root -> info)) -> split_type);
+        if(((Split*)(root -> info)) -> split_type == 'V')
+        {
+            root -> left -> x_cord = *x;
+            root -> right -> x_cord = *x + ((Box*)(root -> left -> info)) -> width;
+        }
+        if(((Split*)(root -> info)) -> split_type == 'H')
+        {
+            *x = 0;
+        }
+        
+        
+    }
+
+    if(root -> type == BOX)
+        return;
+
+    return;
+}
+*/
 void write_output_3(Tree_Node* head, FILE* fp)
 {
     if(head == NULL || head -> type == BOX)
@@ -236,10 +266,14 @@ int main(int argc, char* argv[])
     find_split_width(root);
     find_split_height(root);
 
+    
     int y = 0;
     int x = 0;
+    
     find_y(root, &y);
     find_x(root, &x);
+    
+    //find_cords(root, &x , &y);
 
     // Output 1
     FILE* fp = fopen(argv[2], "w");

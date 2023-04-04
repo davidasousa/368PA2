@@ -173,34 +173,27 @@ void find_coords(Tree_Node* root)
         root -> left -> x_cord = root -> x_cord;
         root -> left -> y_cord = root -> y_cord + root -> right -> height;
 
-        root -> right -> y_cord = root -> x_cord;
+        root -> right -> x_cord = root -> x_cord;
         root -> right -> y_cord = root -> y_cord;
     }
 
-    find_coords(root -> left);
     find_coords(root -> right);
+    find_coords(root -> left);
 
     return;
 }
 
 void write_output_3(Tree_Node* head, FILE* fp)
 {
-    if(head == NULL || head -> type == BOX)
+    if(head == NULL)
         return;
 
+    if(head -> type == BOX)
+        fprintf(fp,"%d((%d,%d)(%d,%d))\n", ((Box*)(head -> info)) -> box_num, head -> width, head -> height, head -> x_cord, head -> y_cord);
+
     write_output_3(head -> left, fp);
- 
-    if(head -> left -> type == BOX)
-    {
-        fprintf(fp,"%d((%d,%d)(%d,%d))\n", ((Box*)(head -> left -> info)) -> box_num, head -> left -> width, head -> left -> height, head -> left -> x_cord, head -> left -> y_cord);
-    }
-    if(head -> right -> type == BOX)
-    {
-        fprintf(fp, "%d((%d,%d)(%d,%d))\n", ((Box*)(head -> right -> info)) -> box_num, head -> right -> width, head -> right -> height, head -> right -> x_cord, head -> right -> y_cord);
-    }
-
     write_output_3(head -> right, fp);
-
+    
     return;
 }
 
